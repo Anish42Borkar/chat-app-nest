@@ -4,11 +4,11 @@ import { db } from 'src/db';
 import { conversationParticipants } from 'src/db/schema/conversationParticipants';
 import { conversations } from 'src/db/schema/conversations';
 import { messages } from 'src/db/schema/messages';
+import { users } from 'src/db/schema/users';
 
 @Injectable()
 export class ChatService {
   // chat.repository.ts (or service for now)
-
   async findConversation(userA: number, userB: number) {
     const result = await db.execute(sql`
     SELECT cp.conversation_id
@@ -121,5 +121,18 @@ export class ChatService {
   `);
 
     return result.rows;
+  }
+
+  // Adding user
+  async createUser(name: string, email: string) {
+    const [user] = await db
+      .insert(users)
+      .values({
+        name,
+        email,
+      })
+      .returning();
+
+    return user;
   }
 }
