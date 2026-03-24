@@ -31,14 +31,10 @@ export class ChatService {
     return conversation;
   }
 
-  async addParticipants(
-    conversationId: number,
-    senderId: number,
-    reciverId: number,
-  ) {
+  async addParticipants(conversationId: number, userA: number, userB: number) {
     await db.insert(conversationParticipants).values([
-      { conversationId, userId: senderId },
-      { conversationId, userId: reciverId },
+      { conversationId, userId: userA },
+      { conversationId, userId: userB },
     ]);
   }
 
@@ -85,5 +81,45 @@ export class ChatService {
     await this.updateConversation(conversationId);
 
     return message;
+  }
+
+  async getConversations(userId: number) {
+    const result = await db.execute(sql`
+    SELECT *
+    FROM (
+      SELECT DISTINCT ON (c.id)
+        c.id as conversation_id,
+        c.updated_at,
+
+        u.id as other_user_id,
+        u.name as other_user_name,
+
+        m.content as last_message,
+        m.created_at as last_message_time
+
+      FROM conversations c
+
+      JOIN conversation_participants cp 
+        ON cp.conversation_id = c.id
+
+      JOIN conversation_participants cp2 
+        ON cp2.conversation_id = c.id
+        AND cp2.user_id != ${userId}
+
+      JOIN users u 
+        ON u.id = cp2.user_id
+
+      LEFT JOIN messages m 
+        ON m.conversation_id = c.id
+
+      WHERE cp.user_id = ${userId}
+
+      ORDER BY c.id, m.created_at DESC
+    ) sub
+
+    ORDER BY updated_at DESC
+  `);
+
+    return result.rows;
   }
 }
