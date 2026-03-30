@@ -6,6 +6,7 @@ import { users } from 'src/db/schema/users';
 import { emailVerificationTokens } from 'src/db/schema/emailVerificationTokens';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { eq, sql } from 'drizzle-orm';
 
 @Injectable()
 export class AuthService {
@@ -40,5 +41,57 @@ export class AuthService {
     return {
       message: 'Signup successful. Please verify your email.',
     };
+  }
+
+  async verifyEmail(token: string) {
+    // 1. find token
+    const result = await db.execute(sql`
+    SELECT *
+    FROM email_verification_tokens
+    WHERE token = ${token}
+    LIMIT 1
+  `);
+
+    const record = result.rows[0];
+
+    if (!record) {
+      return { message: 'Invalid token' };
+    }
+
+    // 2. check expiry
+    if (
+      typeof record.expires_at === 'string' ||
+      typeof record.expires_at === 'number' ||
+      record.expires_at instanceof Date
+    ) {
+      if (new Date(record.expires_at as string).getTime() < Date.now()) {
+        console.log(new Date(record.expires_at), ' = ', new Date());
+        return { message: 'Token expired' };
+      }
+    } else {
+      return { message: 'Invalid expires_at type' };
+    }
+
+    console.log(
+      new Date(record.expires_at as string).getTime(),
+      ' = ',
+      Date.now(),
+    );
+
+    return { message: 'test' };
+
+    // 3. mark user verified
+    await db
+      .update(users)
+      .set({ isVerified: true })
+      .where(eq(users.id, Number(record.user_id)));
+
+    // 4. delete token
+    await db.execute(sql`
+    DELETE FROM email_verification_tokens
+    WHERE id = ${record.id}
+  `);
+
+    return { message: 'Email verified successfully' };
   }
 }
