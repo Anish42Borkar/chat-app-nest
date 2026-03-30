@@ -124,15 +124,15 @@ export class ChatService {
   }
 
   // Adding user
-  async createUser(name: string, email: string) {
-    const [user] = await db
-      .insert(users)
-      .values({
-        name,
-        email,
-      })
-      .returning();
+  // async createUser(name: string, email: string) {
+  //   const [user] = await db
+  //     .insert(users)
+  //     .values({
+  //       name,
+  //       email,
+  //     })
+  //     .returning();
 
-    return user;
-  }
+  //   return user;
+  // }
 }

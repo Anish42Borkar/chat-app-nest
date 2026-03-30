@@ -31,15 +31,32 @@ export class ChatGateway implements OnGatewayConnection {
   ) {
     const { senderId, receiverId, content } = data;
 
+    // 1. Save message
     const message = await this.chatService.sendMessage(
       senderId,
       receiverId,
       content,
     );
 
-    // send only to sender & receiver
+    // 2. Emit message (existing)
     this.server.to(`user_${senderId}`).emit('receive_message', message);
     this.server.to(`user_${receiverId}`).emit('receive_message', message);
+
+    // 🔥 3. Fetch updated conversations
+    const senderConversations =
+      await this.chatService.getConversations(senderId);
+
+    const receiverConversations =
+      await this.chatService.getConversations(receiverId);
+
+    // 🔥 4. Emit updated chat list
+    this.server
+      .to(`user_${senderId}`)
+      .emit('conversation_list', senderConversations);
+
+    this.server
+      .to(`user_${receiverId}`)
+      .emit('conversation_list', receiverConversations);
 
     return message;
   }

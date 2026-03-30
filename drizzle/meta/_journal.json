@@ -8,6 +8,20 @@
       "when": 1774288229932,
       "tag": "0000_milky_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774789722316,
+      "tag": "0001_fuzzy_christian_walker",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774790529256,
+      "tag": "0002_nasty_korath",
+      "breakpoints": true
     }
   ]
 }
