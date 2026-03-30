@@ -78,8 +78,6 @@ export class AuthService {
       Date.now(),
     );
 
-    return { message: 'test' };
-
     // 3. mark user verified
     await db
       .update(users)
