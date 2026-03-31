@@ -7,9 +7,58 @@ import { emailVerificationTokens } from 'src/db/schema/emailVerificationTokens';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { eq, sql } from 'drizzle-orm';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class AuthService {
+  async login(email: string, password: string) {
+    // 1. find user
+    const result = await db.execute(sql`
+    SELECT *
+    FROM users
+    WHERE email = ${email}
+    LIMIT 1
+  `);
+
+    const user = result.rows[0];
+
+    if (!user) {
+      return { message: 'Invalid credentials' };
+    }
+
+    // 2. check password
+    const isMatch = await bcrypt.compare(password, user.password as string);
+
+    if (!isMatch) {
+      return { message: 'Invalid credentials' };
+    }
+
+    // 3. check email verification
+    if (!user.is_verified) {
+      return { message: 'Please verify your email first' };
+    }
+
+    // 4. generate JWT
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: '7d' },
+    );
+
+    return {
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    };
+  }
+
   async signup(name: string, email: string, password: string) {
     // 1. hash password
     const hashedPassword = await bcrypt.hash(password, 10);
