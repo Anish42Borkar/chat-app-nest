@@ -5,22 +5,58 @@ import {
   MessageBody,
   ConnectedSocket,
   OnGatewayConnection,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
+import * as jwt from 'jsonwebtoken';
+import { UnauthorizedException } from '@nestjs/common';
 
 @WebSocketGateway({ cors: true })
-export class ChatGateway implements OnGatewayConnection {
+export class ChatGateway implements OnGatewayConnection, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
   constructor(private readonly chatService: ChatService) {}
 
-  handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId;
+  // using middleware, it will validate token before shaking hand
+  afterInit(server: Server) {
+    server.use((socket, next) => {
+      try {
+        // get token from client
+        const token = socket.handshake.auth?.token;
 
-    if (userId) {
-      client.join(`user_${userId}`);
+        if (!token) {
+          console.log('inside middleware test ', token);
+
+          return next(new UnauthorizedException('Unauthorized'));
+        }
+
+        // varifying token
+        const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+
+        socket.data.user = decoded;
+
+        console.log(decoded);
+
+        next(); // ✅ allow connection
+      } catch (err) {
+        console.log('inside middleware error');
+
+        console.log(err);
+
+        next(new UnauthorizedException('Unauthorized')); // ❌ reject BEFORE connection
+      }
+    });
+  }
+
+  handleConnection(client: Socket) {
+    try {
+      const data = client.data;
+      // join room
+      client.join(`user_${data.user.userId}`);
+    } catch (err) {
+      client.disconnect();
     }
   }
 
@@ -31,6 +67,8 @@ export class ChatGateway implements OnGatewayConnection {
   ) {
     const { senderId, receiverId, content } = data;
 
+    console.log('socker message data ', data);
+
     // 1. Save message
     const message = await this.chatService.sendMessage(
       senderId,
@@ -38,6 +76,7 @@ export class ChatGateway implements OnGatewayConnection {
       content,
     );
 
+    console.log('server emit message ', message, ' ', `user_${senderId}`);
     // 2. Emit message (existing)
     this.server.to(`user_${senderId}`).emit('receive_message', message);
     this.server.to(`user_${receiverId}`).emit('receive_message', message);
