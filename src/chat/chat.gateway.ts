@@ -11,13 +11,17 @@ import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import * as jwt from 'jsonwebtoken';
 import { UnauthorizedException } from '@nestjs/common';
+import { ChatRepository } from './chat.repository';
 
 @WebSocketGateway({ cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private chatRepository: ChatRepository,
+  ) {}
 
   // using middleware, it will validate token before shaking hand
   afterInit(server: Server) {
@@ -83,10 +87,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit {
 
     // 🔥 3. Fetch updated conversations
     const senderConversations =
-      await this.chatService.getConversations(senderId);
+      await this.chatRepository.getConversations(senderId);
 
     const receiverConversations =
-      await this.chatService.getConversations(receiverId);
+      await this.chatRepository.getConversations(receiverId);
 
     // 🔥 4. Emit updated chat list
     this.server
