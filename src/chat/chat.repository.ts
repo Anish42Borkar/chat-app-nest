@@ -1,15 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
+import { PgTransaction, PgDatabase } from 'drizzle-orm/pg-core';
+
 import { db } from 'src/db';
 import { conversationParticipants } from 'src/db/schema/conversationParticipants';
 import { conversations } from 'src/db/schema/conversations';
 import { messages } from 'src/db/schema/messages';
 
+type DBOrTx = PgDatabase<any, any, any> | PgTransaction<any, any, any>;
+
 @Injectable()
 export class ChatRepository {
   // chat.repository.ts (or service for now)
-  async findConversation(userA: number, userB: number) {
-    const result = await db.execute(sql`
+  async findConversation(userA: number, userB: number, tx: DBOrTx = db) {
+    const result = await tx.execute(sql`
         SELECT cp.conversation_id
         FROM conversation_participants cp
         WHERE cp.user_id IN (${userA}, ${userB})
@@ -21,8 +25,8 @@ export class ChatRepository {
     return result.rows[0]?.conversation_id as number | undefined;
   }
 
-  async createConversation() {
-    const [conversation] = await db
+  async createConversation(tx: DBOrTx = db) {
+    const [conversation] = await tx
       .insert(conversations)
       .values({})
       .returning();
@@ -30,8 +34,13 @@ export class ChatRepository {
     return conversation;
   }
 
-  async addParticipants(conversationId: number, userA: number, userB: number) {
-    await db.insert(conversationParticipants).values([
+  async addParticipants(
+    conversationId: number,
+    userA: number,
+    userB: number,
+    tx: DBOrTx = db,
+  ) {
+    await tx.insert(conversationParticipants).values([
       { conversationId, userId: userA },
       { conversationId, userId: userB },
     ]);
@@ -41,8 +50,9 @@ export class ChatRepository {
     conversationId: number,
     senderId: number,
     content: string,
+    tx: DBOrTx = db,
   ) {
-    const [message] = await db
+    const [message] = await tx
       .insert(messages)
       .values({
         conversationId,
@@ -54,15 +64,15 @@ export class ChatRepository {
     return message;
   }
 
-  async updateConversation(conversationId: number) {
-    await db
+  async updateConversation(conversationId: number, tx: DBOrTx = db) {
+    await tx
       .update(conversations)
       .set({ updatedAt: new Date() })
       .where(eq(conversations.id, conversationId));
   }
 
-  async getConversations(userId: number) {
-    const result = await db.execute(sql`
+  async getConversations(userId: number, tx: DBOrTx = db) {
+    const result = await tx.execute(sql`
     SELECT *
     FROM (
       SELECT DISTINCT ON (c.id)
