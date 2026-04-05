@@ -24,23 +24,29 @@ export class JwtAuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
 
-    const authHeader = request.headers['authorization'];
+    const token = request.cookies?.token?.token;
 
-    if (!authHeader) {
+    console.log('request.cookies?.token : ', token);
+
+    if (!token) {
       throw new Error('No token provided');
     }
 
-    const token = authHeader.split(' ')[1]; // Bearer TOKEN
+    // const token = authHeader.split(' ')[1]; // Bearer TOKEN
 
-    if (!token) {
-      throw new Error('Invalid token');
-    }
+    // if (!token) {
+    //   throw new Error('Invalid token');
+    // }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      console.log(decoded, ' decoded');
       request.user = decoded; // attach user to request
       return true;
     } catch (err) {
+      console.log('Unauthorized\n\n\n\n');
+
+      console.log(err);
       throw new UnauthorizedException('Unauthorized');
     }
   }

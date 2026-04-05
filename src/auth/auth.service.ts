@@ -1,6 +1,6 @@
 // src/auth/auth.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Res } from '@nestjs/common';
 import { db } from 'src/db';
 import { users } from 'src/db/schema/users';
 import { emailVerificationTokens } from 'src/db/schema/emailVerificationTokens';
@@ -89,6 +89,7 @@ export class AuthService {
 
     return {
       message: 'Signup successful. Please verify your email.',
+      verificationLink,
     };
   }
 
