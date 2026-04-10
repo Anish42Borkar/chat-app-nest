@@ -6,12 +6,12 @@ import { db } from 'src/db';
 export class ChatService {
   constructor(private chatRepository: ChatRepository) {}
 
-  async sendMessage(userA: number, userB: number, content: string) {
+  async sendMessage(senderId: number, receiverId: number, content: string) {
     return await db.transaction(async (tx) => {
       // 1. find existing conversation
       let conversationId = await this.chatRepository.findConversation(
-        userA,
-        userB,
+        senderId,
+        receiverId,
         tx,
       );
 
@@ -22,8 +22,8 @@ export class ChatService {
 
         await this.chatRepository.addParticipants(
           conversationId,
-          userA,
-          userB,
+          senderId,
+          receiverId,
           tx,
         );
       }
@@ -31,7 +31,7 @@ export class ChatService {
       // 3. insert message
       const message = await this.chatRepository.createMessage(
         conversationId,
-        userA,
+        senderId,
         content,
         tx,
       );
@@ -40,5 +40,13 @@ export class ChatService {
       await this.chatRepository.updateConversation(conversationId, tx);
       return message;
     });
+  }
+
+  async getMessages(conversationId: number, parsedCursor?: string) {
+    const result = await this.chatRepository.getMessages(
+      conversationId,
+      parsedCursor,
+    );
+    return result.rows;
   }
 }

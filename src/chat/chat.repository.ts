@@ -76,14 +76,14 @@ export class ChatRepository {
     SELECT *
     FROM (
       SELECT DISTINCT ON (c.id)
-        c.id as conversation_id,
-        c.updated_at,
+        c.id AS "conversationId",
+        c.updated_at AS "updatedAt" ,
 
-        u.id as other_user_id,
-        u.name as other_user_name,
+        u.id AS "otherUserId",
+        u.name AS "otherUserName",
 
-        m.content as last_message,
-        m.created_at as last_message_time
+        m.content AS "lastMessage",
+        m.created_at AS "lastMessageTime"
 
       FROM conversations c
 
@@ -105,9 +105,40 @@ export class ChatRepository {
       ORDER BY c.id, m.created_at DESC
     ) sub
 
-    ORDER BY updated_at DESC
+    ORDER BY "updatedAt" DESC
   `);
 
     return result.rows;
+  }
+
+  async getMessages(conversationId: number, cursor?: string, limit = 20) {
+    console.log(cursor, '  cursor');
+    // const cursorDate = cursor ? new Date(cursor) : undefined;
+    if (cursor) {
+      return await db.execute(`
+          SELECT  id,
+                  conversation_id AS "conversationId",
+                  sender_id AS "senderId",
+                  content,
+                  created_at AS "createdAt"
+          FROM messages 
+            WHERE conversation_Id = ${conversationId} 
+            AND created_at < '${cursor}'
+            ORDER BY created_at desc
+            LIMIT ${limit}
+          `);
+    }
+
+    return await db.execute(`
+          SELECT  id,
+                  conversation_id AS "conversationId",
+                  sender_id AS "senderId",
+                  content,
+                  created_at AS "createdAt"
+          FROM messages 
+            WHERE conversation_Id = ${conversationId} 
+            ORDER BY created_at desc
+            LIMIT ${limit}
+          `);
   }
 }

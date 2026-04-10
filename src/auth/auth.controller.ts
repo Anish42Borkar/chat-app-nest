@@ -15,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from './public.decorator';
 import type { Response } from 'express';
 import { JwtAuthGuard } from './jwt.guard';
+import type { AuthRequest } from 'src/common/types/auth-request.type';
 
 @Controller('auth')
 export class AuthController {
@@ -22,16 +23,15 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  getMe(@Req() req) {
-    return req.user;
+  getMe(@Req() req: AuthRequest) {
+    return { ...req.user, token: req.jwtToken };
   }
-
   @Public()
   @Post('login')
   async login(@Res() res: Response, @Body() body: LoginDto) {
     const { email, password } = body;
     const token = await this.authService.login(email, password);
-
+    console.log(token);
     res.cookie('token', token, {
       httpOnly: true,
       secure: false,
