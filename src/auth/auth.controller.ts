@@ -4,6 +4,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Query,
   Req,
@@ -27,10 +29,12 @@ export class AuthController {
     return { ...req.user, token: req.jwtToken };
   }
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Res() res: Response, @Body() body: LoginDto) {
     const { email, password } = body;
     const token = await this.authService.login(email, password);
+
     console.log(token);
     res.cookie('token', token, {
       httpOnly: true,

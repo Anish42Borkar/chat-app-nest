@@ -1,6 +1,6 @@
 // src/auth/auth.service.ts
 
-import { Injectable, Res } from '@nestjs/common';
+import { Injectable, NotFoundException, Res } from '@nestjs/common';
 import { db } from 'src/db';
 import { users } from 'src/db/schema/users';
 import { emailVerificationTokens } from 'src/db/schema/emailVerificationTokens';
@@ -23,14 +23,14 @@ export class AuthService {
     const user = result.rows[0];
 
     if (!user) {
-      return { message: 'Invalid credentials' };
+      throw new NotFoundException({ message: 'Invalid credentials' });
     }
 
     // 2. check password
     const isMatch = await bcrypt.compare(password, user.password as string);
 
     if (!isMatch) {
-      return { message: 'Invalid credentials' };
+      throw new NotFoundException({ message: 'Invalid credentials' });
     }
 
     // 3. check email verification

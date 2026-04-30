@@ -12,11 +12,15 @@ type DBOrTx = PgDatabase<any, any, any> | PgTransaction<any, any, any>;
 @Injectable()
 export class ChatRepository {
   // chat.repository.ts (or service for now)
-  async findConversation(userA: number, userB: number, tx: DBOrTx = db) {
+  async findConversation(
+    senderId: number,
+    receiverId: number,
+    tx: DBOrTx = db,
+  ) {
     const result = await tx.execute(sql`
         SELECT cp.conversation_id
         FROM conversation_participants cp
-        WHERE cp.user_id IN (${userA}, ${userB})
+        WHERE cp.user_id IN (${senderId}, ${receiverId})
         GROUP BY cp.conversation_id
         HAVING COUNT(DISTINCT cp.user_id) = 2
         LIMIT 1
@@ -140,5 +144,17 @@ export class ChatRepository {
             ORDER BY created_at desc
             LIMIT ${limit}
           `);
+  }
+
+  async getUser(user: string, userId: number) {
+    const userData = (
+      await db.execute(`SELECT id FROM users WHERE email = '${user}'`)
+    ).rows;
+
+    const receiverId = userData[0].id as number;
+
+    const conversation = await this.findConversation(userId, receiverId);
+
+    return conversation;
   }
 }

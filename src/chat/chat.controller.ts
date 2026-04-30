@@ -17,6 +17,12 @@ export class ChatController {
     return this.chatRepository.getConversations(id);
   }
 
+  @Get('user')
+  async getUser(@Query('user') user: string, @Req() req: AuthRequest) {
+    const userId = req.user.userId;
+    return await this.chatRepository.getUser(user, userId);
+  }
+
   @Get('messages')
   async getMessages(
     @Query('conversationId') conversationId: number,
